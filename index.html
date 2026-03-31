@@ -1,466 +1,396 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Shield, 
-  AlertTriangle, 
-  Activity, 
-  Lock, 
-  Users, 
-  Heart, 
-  Zap, 
-  ArrowRight, 
-  CheckCircle2, 
-  XCircle,
-  RefreshCcw,
-  ShieldAlert,
-  Volume2,
-  VolumeX,
-  History,
-  Info,
-  ChevronRight,
-  Terminal,
-  Clock,
-  Smartphone,
-  Globe
-} from 'lucide-react';
-
-// အဖြေများကို နေရာလွဲရန် လုပ်ဆောင်ချက်
-const shuffle = (array) => {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-};
-
-const rawEvents = [
-  { id: 1, category: 'Digital', title: 'Phishing Intelligence', description: 'အဖွဲ့အစည်း၏ Email အတွင်းသို့ ဝန်ထမ်းရေးရာ အကြောင်းအရာများဖြင့် လှည့်ဖြားထားသော Email များ ရောက်ရှိနေပါသည်။', correctAction: 'IT Team ထံ ပေးပို့၍ Email တစ်ခုလုံးကို Quarantine လုပ်ခိုင်းမည်။', options: ['အန္တရာယ်ရှိသော ဝန်ထမ်းများကို အလုပ်ထုတ်မည်။', 'IT Team ထံ ပေးပို့၍ Email တစ်ခုလုံးကို Quarantine လုပ်ခိုင်းမည်။', 'Email ထဲရှိ Link ကို နှိပ်၍ အတည်ပြုချက် ရယူမည်။'], lesson: 'Phishing သည် အဖွဲ့အစည်းလိုက် တုံ့ပြန်ရန်လိုအပ်သော ခြိမ်းခြောက်မှုဖြစ်သည်။' },
-  { id: 2, category: 'Physical', title: 'Surveillance Detection', description: 'ရုံးခန်းအနီးတွင် မသင်္ကာဖွယ် လူတစ်စုက ဓာတ်ပုံရိုက်ခြင်းနှင့် စောင့်ကြည့်ခြင်းများ ပြုလုပ်နေသည်။', correctAction: 'ဝန်ထမ်းများကို သတိပေးချက်ထုတ်ကာ ခေတ္တအိမ်မှ အလုပ်လုပ်ခိုင်းမည်။', options: ['ချက်ချင်းသွားရောက်၍ ၎င်းတို့အား ရုံးရှေ့မှ မောင်းထုတ်မည်။', 'ဝန်ထမ်းများကို သတိပေးချက်ထုတ်ကာ ခေတ္တအိမ်မှ အလုပ်လုပ်ခိုင်းမည်။', 'လုံခြုံရေးကို အသိမပေးဘဲ ပုံမှန်အတိုင်း ဆက်လက်နေထိုင်မည်။'], lesson: 'စောင့်ကြည့်ခံရခြင်းသည် တိုက်ခိုက်မှုတစ်ခု၏ ရှေးပြေးလက္ခဏာ ဖြစ်နိုင်သည်။' },
-  { id: 3, category: 'Operational', title: 'Information Sanitization', description: 'အရေးကြီးသော ပရောဂျက်တစ်ခု ပြီးဆုံးသည့်အခါ ရရှိလာသည့် စာရွက်စာတမ်း အကြမ်းများကို မည်သို့လုပ်မည်နည်း။', correctAction: 'Shredder စက်ဖြင့် အမှုန်ကြိတ်ဖျက်ဆီးပြီးမှသာ စွန့်ပစ်မည်။', options: ['စာရွက်များကို အပိုင်းပိုင်းစုတ်ဖြဲ၍ အမှိုက်ပုံးထဲ ထည့်မည်။', 'Shredder စက်ဖြင့် အမှုန်ကြိတ်ဖျက်ဆီးပြီးမှသာ စွန့်ပစ်မည်။', 'နောက်တစ်ကြိမ် ပြန်လည်အသုံးပြုရန် စာရွက်များကို သိမ်းထားမည်။'], lesson: 'စုတ်ဖြဲရုံဖြင့် အချက်အလက်ကို အပြည့်အဝ မဖျက်ဆီးနိုင်ပါ။' },
-  { id: 4, category: 'Digital', title: 'Data Resilience', description: 'အဖွဲ့အစည်း၏ Database ကို Ransomware ဘေးမှ ကာကွယ်ရန် အထိရောက်ဆုံး နည်းလမ်းမှာ အဘယ်နည်း။', correctAction: 'Off-site သိမ်းဆည်းထားသော Encrypted Backup စနစ်ကို သုံးမည်။', options: ['ရုံးတွင်းရှိ External Hard drive ထဲတွင်သာ ကူးယူသိမ်းဆည်းမည်။', 'Off-site သိမ်းဆည်းထားသော Encrypted Backup စနစ်ကို သုံးမည်။', 'Cloud Storage တစ်ခုတည်းတွင်သာ အချက်အလက် တင်ထားမည်။'], lesson: 'Offline/Off-site backup သည် Ransomware အတွက် အထိရောက်ဆုံးဖြစ်သည်။' },
-  { id: 5, category: 'Digital', title: 'Removable Media Risk', description: 'ရုံးခန်းအတွင်းတွင် ပိုင်ရှင်မဲ့ USB တစ်ခုကို တွေ့ရှိရသည်။ သင် မည်သို့ ဆောင်ရွက်မည်နည်း။', correctAction: 'သီးခြားခွဲထုတ်ထားသော စက်ဖြင့်သာ စစ်ဆေးမည် သို့မဟုတ် ဖျက်ဆီးမည်။', options: ['ပိုင်ရှင်ရှာဖွေရန် မည်သည့်စက်တွင်မဆို ထည့်သွင်းစစ်ဆေးမည်။', 'သီးခြားခွဲထုတ်ထားသော စက်ဖြင့်သာ စစ်ဆေးမည် သို့မဟုတ် ဖျက်ဆီးမည်။', 'USB ကို ပိုင်ရှင်ပြန်တွေ့ရန် ဝန်ထမ်းအားလုံး၏ စက်တွင် စမ်းခိုင်းမည်။'], lesson: 'USB များသည် Malware သွင်းရန် အသုံးအများဆုံး နည်းလမ်းဖြစ်သည်။' },
-  { id: 6, category: 'Physical', title: 'Tailgating Breach', description: 'ဝန်ထမ်းတစ်ဦး နောက်မှ ကပ်လျက် သူစိမ်းတစ်ဦး ရုံးအတွင်းသို့ ဝင်လာသည်ကို တွေ့ရသည်။', correctAction: 'ယဉ်ကျေးစွာ တားဆီးပြီး ဧည့်ခန်းတွင် စောင့်ခိုင်းကာ တာဝန်ရှိသူကို ခေါ်မည်။', options: ['ဝန်ထမ်းနှင့် ရင်းနှီးသူဖြစ်မည်ဟု ယူဆကာ လွှတ်ပေးလိုက်မည်။', 'ယဉ်ကျေးစွာ တားဆီးပြီး ဧည့်ခန်းတွင် စောင့်ခိုင်းကာ တာဝန်ရှိသူကို ခေါ်မည်။', 'လုံခြုံရေး အစောင့်များကို အော်ဟစ်ကာ ချက်ချင်းဖမ်းခိုင်းမည်။'], lesson: 'Social engineering သည် ယဉ်ကျေးမှုကို အသုံးချ၍ စည်းကမ်းဖောက်ဖျက်တတ်သည်။' },
-  { id: 7, category: 'Digital', title: 'Secure Communication', description: 'အရေးကြီးသော မြေပြင်သတင်းများကို အဖွဲ့သားများထံ ပေးပို့ရန် မည်သည့် App ကို သုံးသင့်သနည်း။', correctAction: 'End-to-end encryption နှင့် Metadata လုံခြုံသော App ကို သုံးမည်။', options: ['ပုံမှန် SMS သို့မဟုတ် ဖုန်းခေါ်ဆိုမှုဖြင့်သာ အကြောင်းကြားမည်။', 'End-to-end encryption နှင့် Metadata လုံခြုံသော App ကို သုံးမည်။', 'အသုံးများသော Messenger သို့မဟုတ် Viber App ကိုသာ သုံးမည်။'], lesson: 'Metadata လုံခြုံမှုသည် အဖွဲ့အစည်း၏ လှုပ်ရှားမှုများကို ဖုံးကွယ်ရန် အရေးကြီးသည်။' },
-  { id: 8, category: 'Digital', title: 'Social Media Hygiene', description: 'ဝန်ထမ်းတစ်ဦးက ကွင်းဆင်းစဉ် ရိုက်ထားသော ဓာတ်ပုံကို Social Media တွင် တင်လိုက်သည်။', correctAction: 'ဓာတ်ပုံကို ဖြုတ်ခိုင်းပြီး Metadata နှင့် Location ကို ဖျက်ခိုင်းမည်။', options: ['အဖွဲ့အစည်း ကြော်ငြာဖြစ်သဖြင့် ဓာတ်ပုံကို Like သွားပေးမည်။', 'ဓာတ်ပုံကို ဖြုတ်ခိုင်းပြီး Metadata နှင့် Location ကို ဖျက်ခိုင်းမည်။', 'ဘာမှမလုပ်ဘဲ ပုံမှန်အတိုင်းသာ ဆက်လက်ထားရှိမည်။'], lesson: 'ဓာတ်ပုံနောက်ခံကို ကြည့်၍ တည်နေရာကို ရှာဖွေနိုင်သည့် အန္တရာယ်ရှိသည်။' },
-  { id: 9, category: 'Contextual', title: 'Checkpoint Preparedness', description: 'စစ်ဆေးရေးဂိတ်တစ်ခုတွင် သင့်ဖုန်းအတွင်းရှိ Contact များကို စစ်ဆေးရန် တောင်းဆိုလာသည်။', correctAction: 'Data များ ဖျောက်ထားသော Sanitized ဖုန်းကိုသာ ထုတ်ပြမည်။', options: ['ဖုန်းမပေးနိုင်ကြောင်း အော်ဟစ်၍ အပြင်းအထန် ငြင်းဆန်မည်။', 'Data များ ဖျောက်ထားသော Sanitized ဖုန်းကိုသာ ထုတ်ပြမည်။', 'Contact အားလုံးကို ထိုနေရာတွင်ပင် အလျင်အမြန် ဖျက်ပစ်မည်။'], lesson: 'မြေပြင်တွင် စစ်ဆေးခံရခြင်းအတွက် Sanitized ဖုန်းမှာ အလုံခြုံဆုံးဖြစ်သည်။' },
-  { id: 10, category: 'Operational', title: 'Credential Protection', description: 'ဝန်ထမ်းတစ်ဦးက Password များကို စာရွက်ပေါ်တွင် ရေးထားသည်ကို တွေ့ရသည်။', correctAction: 'Master Password ပါသော Password Manager သုံးရန် ညွှန်ကြားမည်။', options: ['စာရွက်ကို မပျောက်အောင် သိမ်းထားရန်သာ သတိပေးမည်။', 'Master Password ပါသော Password Manager သုံးရန် ညွှန်ကြားမည်။', 'ဘာမှမပြောဘဲ ဝန်ထမ်း၏ လွတ်လပ်ခွင့်အဖြစ် ထားရှိမည်။'], lesson: 'Password Manager သည် ရှုပ်ထွေးသော Password များကို လုံခြုံစေသည်။' },
-  { id: 11, category: 'Physical', title: 'Incident Response: Break-in', description: 'ရုံးခန်းအတွင်း သူခိုးဝင်ထားပြီး Laptop တစ်လုံး ပျောက်ဆုံးနေသည်ကို တွေ့ရသည်။', correctAction: 'Remote Wipe စနစ်ဖြင့် Laptop ထဲမှ Data ကို ချက်ချင်းဖျက်မည်။', options: ['ရဲကို ချက်ချင်းတိုင်မည် (Data မဖျက်ဘဲ အထောက်အထားပြရန်)။', 'Remote Wipe စနစ်ဖြင့် Laptop ထဲမှ Data ကို ချက်ချင်းဖျက်မည်။', 'ပစ္စည်းပျောက်ရှာရန် ရုံးခန်းတစ်ခုလုံးကို မွှေနှောက်စစ်ဆေးမည်။'], lesson: 'စက်ပစ္စည်းထက် Data လုံခြုံရေးက ပိုမိုဦးစားပေး ဖြစ်ရမည်။' },
-  { id: 12, category: 'Digital', title: 'Zero-day Patching', description: 'Software တွင် Critical Vulnerability ရှိကြောင်း သတင်းတက်လာသည်။', correctAction: 'အလုပ်များကို ရပ်နားပြီး လုံခြုံရေး Update ကို ချက်ချင်း တင်မည်။', options: ['အလုပ်အားသည့် အချိန်မှသာ Update ကို တင်ရန် စီစဉ်မည်။', 'အလုပ်များကို ရပ်နားပြီး လုံခြုံရေး Update ကို ချက်ချင်း တင်မည်။', 'Software ကို ဆက်လက်အသုံးမပြုတော့ဘဲ ရပ်ဆိုင်းထားမည်။'], lesson: 'Update တင်ခြင်းသည် လုံခြုံရေး အပေါက်များကို ပိတ်ခြင်းဖြစ်သည်။' },
-  { id: 13, category: 'Operational', title: 'Internal Threat', description: 'ဝန်ထမ်းဟောင်းတစ်ဦးက ရုံး၏ Drive ကို ဆက်လက် အသုံးပြုနေသည်ကို တွေ့ရသည်။', correctAction: 'Access များကို ပိတ်ပြီး ကြည့်ရှုသွားသော Data များကို စစ်မည်။', options: ['ဝန်ထမ်းဟောင်းဖြစ်သဖြင့် အချိန်အနည်းငယ် ထပ်ပေးထားမည်။', 'Access များကို ပိတ်ပြီး ကြည့်ရှုသွားသော Data များကို စစ်မည်။', 'စကားဝှက်အသစ် ပြောင်းလဲပေးရန်သာ တောင်းဆိုမည်။'], lesson: 'Off-boarding လုပ်ငန်းစဉ်တွင် Access ပိတ်ခြင်းမှာ အဓိကဖြစ်သည်။' },
-  { id: 14, category: 'Contextual', title: 'Physical Surveillance', description: 'ဟိုတယ်တွင် တည်းခိုစဉ် သင့်အခန်းတံခါးမှာ သင်မရှိခိုက် ဖွင့်ထားသည်ကို တွေ့ရသည်။', correctAction: 'ဟိုတယ်လုံခြုံရေးကို ခေါ်ပြီး ပစ္စည်းများကို အသစ်လဲလှယ်မည်။', options: ['အတွင်းဝင်၍ ပစ္စည်းများ ပျောက်မပျောက် တစ်ခုချင်း စစ်မည်။', 'ဟိုတယ်လုံခြုံရေးကို ခေါ်ပြီး ပစ္စည်းများကို အသစ်လဲလှယ်မည်။', 'တံခါးပြန်ပိတ်ပြီး မည်သူမျှ မသိအောင် အိပ်စက်လိုက်မည်။'], lesson: 'စောင့်ကြည့်ရေးကိရိယာများ (Bugs) ထည့်သွင်းထားနိုင်သည်ကို သတိပြုရမည်။' },
-  { id: 15, category: 'Operational', title: 'Mission Complete', description: 'ခရီးစဉ်တစ်ခုမသွားမီ လုံခြုံရေးအရ မည်သည်ကို ကြိုတင်ပြင်ဆင်သင့်သနည်း။', correctAction: 'Risk Assessment ပြုလုပ်ပြီး Exit Route များ သတ်မှတ်မည်။', options: ['ခရီးစဉ်အတွက် အသုံးစရိတ်များကိုသာ အလေးထား ပြင်ဆင်မည်။', 'Risk Assessment ပြုလုပ်ပြီး Exit Route များ သတ်မှတ်မည်။', 'ဘာမှမပြင်ဆင်ဘဲ မြေပြင်အခြေအနေကြည့်၍သာ ဆောင်ရွက်မည်။'], lesson: 'ကြိုတင်ပြင်ဆင်ခြင်းသည် ဘေးဒုက္ခကို ထက်ဝက်လျှော့ချနိုင်သည်။' }
-];
-
-const App = () => {
-  const [gameState, setGameState] = useState('start');
-  const [day, setDay] = useState(1);
-  const [safety, setSafety] = useState(100);
-  const [resources, setResources] = useState(100);
-  const [lives, setLives] = useState(5);
-  const [currentEventIndex, setCurrentEventIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [isMuted, setIsMuted] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(15);
-  const [shuffledOptions, setShuffledOptions] = useState([]);
-  const [userMetadata, setUserMetadata] = useState({ ip: 'Fetching...', device: 'Detecting...' });
-  
-  const audioCtxRef = useRef(null);
-  const pulseOscRef = useRef(null);
-  const droneOscRef = useRef(null);
-  const pulseIntervalRef = useRef(null);
-
-  // Fetch IP and Device Info
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        const userAgent = navigator.userAgent;
-        let deviceType = "Desktop";
-        if (/Mobi|Android/i.test(userAgent)) deviceType = "Mobile Device";
-        if (/Tablet|iPad/i.test(userAgent)) deviceType = "Tablet";
-        
-        setUserMetadata({
-          ip: data.ip,
-          device: deviceType + " (" + (navigator.platform || "Unknown OS") + ")"
-        });
-      } catch (err) {
-        setUserMetadata(prev => ({ ...prev, ip: 'Unavailable', device: 'Unknown Device' }));
-      }
-    };
-    fetchMetadata();
-  }, []);
-
-  const initAudio = useCallback(() => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-  }, []);
-
-  const playBGM = useCallback(() => {
-    if (isMuted || !audioCtxRef.current) return;
-    if (pulseOscRef.current) return;
-
-    const ctx = audioCtxRef.current;
-    
-    // Low Drone Layer
-    const drone = ctx.createOscillator();
-    const droneGain = ctx.createGain();
-    drone.type = 'sine';
-    drone.frequency.setValueAtTime(55, ctx.currentTime);
-    droneGain.gain.setValueAtTime(0.04, ctx.currentTime);
-    drone.connect(droneGain);
-    droneGain.connect(ctx.destination);
-    drone.start();
-    droneOscRef.current = drone;
-
-    // Pulse Function (Techno Security Pulse)
-    const createPulse = () => {
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(110, now); // Slightly higher frequency for clarity
-      
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(400, now);
-      filter.Q.setValueAtTime(10, now);
-
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.6);
-    };
-
-    // Trigger Pulse every 2 seconds
-    pulseIntervalRef.current = setInterval(createPulse, 2000);
-    pulseOscRef.current = true; // Flag to indicate music is playing
-  }, [isMuted]);
-
-  const stopBGM = useCallback(() => {
-    if (droneOscRef.current) {
-      droneOscRef.current.stop();
-      droneOscRef.current = null;
-    }
-    if (pulseIntervalRef.current) {
-      clearInterval(pulseIntervalRef.current);
-      pulseIntervalRef.current = null;
-    }
-    pulseOscRef.current = false;
-  }, []);
-
-  useEffect(() => {
-    if (!isMuted) {
-      initAudio();
-      playBGM();
-    } else {
-      stopBGM();
-    }
-    return () => stopBGM();
-  }, [isMuted, playBGM, stopBGM, initAudio]);
-
-  useEffect(() => {
-    if (gameState === 'playing' && !isConfirmed) {
-      setShuffledOptions(shuffle(rawEvents[currentEventIndex].options));
-      setTimeLeft(15);
-    }
-  }, [currentEventIndex, gameState, isConfirmed]);
-
-  // Timer logic with Auto-advance on Timeout
-  useEffect(() => {
-    let timer;
-    if (gameState === 'playing' && !isConfirmed && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && !isConfirmed) {
-      handleTimeOut();
-    }
-    return () => clearInterval(timer);
-  }, [timeLeft, gameState, isConfirmed]);
-
-  const handleTimeOut = () => {
-    const currentEvent = rawEvents[currentEventIndex];
-    const newRecord = { title: currentEvent.title, choice: 'Time Out', correct: false, lesson: currentEvent.lesson };
-    setHistory(prev => [...prev, newRecord]);
-    setLives(l => l - 1);
-    setSafety(s => Math.max(0, s - 20));
-    setFeedback({ correct: false, text: `အချိန်ကုန်သွားပါသည်။ နောက်မေးခွန်းသို့ ဆက်သွားပါမည်။`, points: "-1 Life, -20 Safety" });
-    setIsConfirmed(true);
-
-    // Auto-advance after 2 seconds
-    setTimeout(() => {
-      autoNext(false, true);
-    }, 2000);
-  };
-
-  const autoNext = (isCorrect, isTimeout) => {
-    const penalty = isTimeout ? 20 : 15;
-    const nextLives = isCorrect ? lives : lives - 1;
-    const nextSafety = isCorrect ? safety : safety - penalty;
-
-    if (nextLives <= 0 || nextSafety <= 0) {
-      setGameState('gameOver');
-    } else if (currentEventIndex < rawEvents.length - 1) {
-      setCurrentEventIndex(i => i + 1);
-      setDay(d => d + 1);
-      setFeedback(null);
-      setSelectedOption(null);
-      setIsConfirmed(false);
-    } else {
-      setGameState('result');
-    }
-  };
-
-  const startGame = () => {
-    initAudio(); // Initialize audio on user interaction
-    setGameState('playing');
-    setDay(1); setSafety(100); setResources(100); setLives(5); setScore(0);
-    setCurrentEventIndex(0); setSelectedOption(null); setIsConfirmed(false);
-    setFeedback(null); setHistory([]); setTimeLeft(15);
-    if (isMuted) setIsMuted(false);
-  };
-
-  const toggleMute = () => {
-    initAudio();
-    setIsMuted(!isMuted);
-  };
-
-  const handleConfirm = () => {
-    if (!selectedOption || isConfirmed) return;
-    const currentEvent = rawEvents[currentEventIndex];
-    const isCorrect = selectedOption === currentEvent.correctAction;
-    setHistory([...history, { title: currentEvent.title, choice: selectedOption, correct: isCorrect, lesson: currentEvent.lesson }]);
-    if (isCorrect) {
-      setScore(s => s + 20); setResources(r => Math.max(0, r - 5));
-      setFeedback({ correct: true, text: `မှန်ကန်ပါသည်။ ${currentEvent.lesson}`, points: "+20 Score" });
-    } else {
-      setLives(l => l - 1); setSafety(s => Math.max(0, s - 15));
-      setFeedback({ correct: false, text: `သတိထားပါ။ ${currentEvent.lesson}`, points: "-1 Life, -15 Safety" });
-    }
-    setIsConfirmed(true);
-  };
-
-  const handleNext = () => {
-    autoNext(feedback.correct, false);
-  };
-
-  return (
-    <div className="min-h-screen bg-[#020406] text-slate-100 font-sans p-4 md:p-8 flex flex-col items-center">
-      
-      {/* Tactical HUD Header */}
-      <div className="w-full max-w-5xl flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-white/10 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600/20 p-2 rounded border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            <Terminal size={20} className="text-blue-400" />
-          </div>
-          <div>
-            <h1 className="font-bold text-base tracking-[0.2em] text-white leading-none">SENTINEL: TACTICAL DEFENSE</h1>
-            <p className="text-[9px] text-blue-400 font-black tracking-[0.4em] uppercase mt-1">Authorized Response Unit</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {gameState === 'playing' && !isConfirmed && (
-            <div className={`flex items-center gap-2 px-4 py-1.5 rounded bg-black/40 border-2 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-blue-500/30 text-blue-100'}`}>
-              <Clock size={16} />
-              <span className="text-sm font-black tracking-tighter w-6">{timeLeft}s</span>
-            </div>
-          )}
-          <button onClick={toggleMute} className="p-2.5 rounded bg-white/5 border border-white/20 hover:bg-white/10 transition-all group">
-            {isMuted ? <VolumeX size={18} className="text-slate-500" /> : <Volume2 size={18} className="text-blue-400 animate-pulse" />}
-          </button>
-          <div className="bg-blue-600/10 px-4 py-2 rounded border border-blue-500/30 text-[10px] font-black tracking-widest text-blue-100">
-            PHASE {day} / {rawEvents.length}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Console */}
-      <div className="w-full max-w-5xl bg-[#0a0f18] rounded-md border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.9)] relative min-h-[550px] flex flex-col md:flex-row overflow-hidden transition-all duration-500">
-        
-        {gameState === 'start' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent">
-            <div className="w-24 h-24 bg-blue-600/10 rounded border-2 border-blue-500/40 flex items-center justify-center mb-10 rotate-45 shadow-[0_0_40px_rgba(59,130,246,0.3)]">
-              <Shield size={40} className="text-blue-400 -rotate-45" />
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-6 tracking-tight">Security Protocol Simulation</h2>
-            <p className="text-slate-400 mb-10 max-w-md text-sm leading-relaxed uppercase tracking-widest font-medium">
-              သင့်တွင် Game ယှဉ်ပြိုင်ရန် အသက်(၅)သက်ရှိသည်။ <br/>
-              အဖြေတစ်ခုစီအတွက် ၁၅ စက္ကန့်သာ ရရှိပါမည်။
-            </p>
-            <button onClick={startGame} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-14 rounded-sm transition-all text-xs uppercase tracking-[0.3em] border border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:scale-105 active:scale-95">
-              Initialize System
-            </button>
-          </div>
-        )}
-
-        {gameState === 'playing' && (
-          <>
-            {/* Sidebar Stats */}
-            <div className="w-full md:w-60 bg-black/70 border-b md:border-b-0 md:border-r border-white/10 p-6 flex flex-col gap-8">
-              <StatItem label="Safety Index" value={safety} color="text-rose-500" progress={safety} />
-              <StatItem label="Resources" value={resources} color="text-blue-400" progress={resources} />
-              <StatItem label="Survival Units" value={lives} color="text-emerald-400" progress={(lives/5)*100} />
-              <StatItem label="Intel Score" value={score} color="text-amber-400" progress={(score/300)*100} />
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 p-6 md:p-12 flex flex-col bg-gradient-to-br from-transparent to-blue-950/10">
-              <div className="mb-8">
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] border-l-4 border-blue-500 pl-3">
-                  Threat Class: {rawEvents[currentEventIndex].category}
-                </span>
-                <h3 className="text-2xl font-bold text-white mt-3 tracking-tight leading-tight">{rawEvents[currentEventIndex].title}</h3>
-              </div>
-
-              <div className="bg-white/5 p-8 rounded-sm border-l-4 border-white/20 mb-10 text-slate-100 text-sm leading-relaxed font-semibold shadow-inner">
-                "{rawEvents[currentEventIndex].description}"
-              </div>
-
-              <div className="space-y-4">
-                {shuffledOptions.map((option, idx) => (
-                  <button 
-                    key={idx} disabled={isConfirmed} onClick={() => setSelectedOption(option)}
-                    className={`w-full text-left p-5 rounded-sm text-sm transition-all border-2 flex items-center ${
-                      selectedOption === option 
-                        ? 'border-blue-500 bg-blue-500/25 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]' 
-                        : 'border-white/5 bg-white/5 text-slate-200 hover:border-white/20 hover:bg-white/10'
-                    } ${isConfirmed && option !== selectedOption ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}
-                  >
-                    <span className={`mr-4 font-black ${selectedOption === option ? 'text-blue-400' : 'text-slate-500'}`}>0{idx + 1}</span> 
-                    <span className="font-bold tracking-wide leading-snug">{option}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-auto pt-12">
-                {selectedOption && !isConfirmed && (
-                  <button onClick={handleConfirm} className="w-full bg-blue-600 text-white font-black py-5 rounded-sm text-xs uppercase tracking-[0.4em] hover:bg-blue-500 transition-all border border-blue-400 shadow-xl hover:scale-[1.01] active:scale-95">
-                    Execute Response
-                  </button>
-                )}
-                {isConfirmed && feedback && (
-                  <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    <div className={`p-5 rounded-sm border-2 mb-6 ${feedback.correct ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-rose-500/10 border-rose-500/40 text-rose-300'}`}>
-                      <div className="flex items-center gap-3 mb-2">
-                        {feedback.correct ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
-                        <p className="font-black uppercase tracking-widest text-xs">{feedback.correct ? 'Result: Optimal Strategy' : 'Result: System Compromised'}</p>
-                      </div>
-                      <p className="text-sm font-bold opacity-90 leading-relaxed">{feedback.text}</p>
-                    </div>
-                    {/* Hide button if it was a timeout auto-advancing */}
-                    {timeLeft > 0 && (
-                       <button onClick={handleNext} className="w-full bg-white text-black font-black py-5 rounded-sm text-xs uppercase tracking-[0.4em] hover:bg-slate-100 transition-colors shadow-2xl">
-                       Continue Mission <ChevronRight size={16} className="inline ml-1" />
-                     </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {(gameState === 'result' || gameState === 'gameOver') && (
-          <div className="flex-1 p-8 md:p-16 overflow-y-auto max-h-[650px] bg-black/60 custom-scrollbar flex flex-col">
-            <div className="text-center mb-12">
-              <h2 className={`text-5xl font-black mb-3 tracking-tighter ${gameState === 'result' ? 'text-emerald-400' : 'text-rose-500'}`}>
-                {gameState === 'result' ? 'OPERATIONAL SUCCESS' : 'MISSION TERMINATED'}
-              </h2>
-              <p className="text-[10px] text-slate-400 tracking-[0.5em] uppercase font-bold">Post-Action Intelligence Report</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
-              <ResultTile label="Final Intel Score" value={score} />
-              <ResultTile label="Efficiency Rating" value={`${Math.round((history.filter(h=>h.correct).length/rawEvents.length)*100)}%`} />
-            </div>
-
-            <button onClick={startGame} className="w-full max-w-sm mx-auto block bg-blue-600 text-white font-black py-5 rounded-sm text-xs uppercase tracking-[0.4em] hover:bg-blue-500 mb-16 shadow-lg active:scale-95 transition-transform">
-              Re-initialize Simulation Core
-            </button>
-
-            <div className="space-y-6 flex-1">
-              <h4 className="text-[11px] font-black text-slate-500 tracking-[0.3em] uppercase border-b border-white/10 pb-3 mb-8 text-center">Debriefing Action Logs</h4>
-              {history.map((h, i) => (
-                <div key={i} className="bg-white/5 p-6 rounded-sm border border-white/10 relative overflow-hidden group hover:bg-white/10 transition-colors">
-                  <div className={`absolute top-0 left-0 w-1.5 h-full ${h.correct ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-black text-sm text-white uppercase tracking-tight">{h.title}</span>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${h.correct ? 'border-emerald-500/50 text-emerald-500' : 'border-rose-500/50 text-rose-500'}`}>
-                      {h.correct ? 'VERIFIED' : 'FAILED'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-4 font-bold italic leading-relaxed">Decision: {h.choice}</p>
-                  <div className="text-blue-300 bg-blue-500/10 p-4 border border-blue-500/20 leading-relaxed text-xs font-semibold rounded-sm">
-                    <span className="text-blue-500 mr-2">LOG:</span> {h.lesson}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer with Metadata */}
-            <div className="mt-16 pt-8 border-t border-white/10 text-center space-y-4">
-              <div className="flex flex-col sm:flex-row justify-center items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                <div className="flex items-center gap-2">
-                  <Globe size={14} className="text-blue-500" />
-                  <span>IP ADDRESS: <span className="text-slate-300">{userMetadata.ip}</span></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Smartphone size={14} className="text-blue-500" />
-                  <span>DEVICE ID: <span className="text-slate-300">{userMetadata.device}</span></span>
-                </div>
-              </div>
-              <p className="text-[8px] opacity-30 uppercase tracking-widest text-slate-500">SENTINEL-X SECURITY AUDIT LOG • SESSION ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <p className="mt-12 text-[9px] text-slate-600 font-black uppercase tracking-[0.8em] opacity-40">
-        End-to-End Encrypted Session • Terminal: Sentinel-X-Prime
-      </p>
-
-      <style dangerouslySetInnerHTML={{ __html: `
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel: Tactical Defense</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons Core -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.5); }
-      `}} />
-    </div>
-  );
-};
+        /* Animation for timer pulse */
+        @keyframes pulse-red {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.5); }
+            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+        }
+        .timer-warning { animation: pulse-red 1s infinite; }
+    </style>
+</head>
+<body class="bg-[#020406]">
+    <div id="root"></div>
 
-const StatItem = ({ label, value, color, progress }) => (
-  <div>
-    <div className="flex justify-between items-center mb-2 px-1">
-      <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{label}</span>
-      <span className={`text-xs font-black ${color}`}>{value}</span>
-    </div>
-    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-      <div className={`h-full ${color.replace('text', 'bg')} transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.1)]`} style={{ width: `${progress}%` }}></div>
-    </div>
-  </div>
-);
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
 
-const ResultTile = ({ label, value }) => (
-  <div className="bg-[#0f172a] p-8 rounded-sm border border-white/5 text-center shadow-lg group hover:border-blue-500/30 transition-colors">
-    <div className="text-3xl font-black text-white mb-2 tracking-tighter group-hover:text-blue-400 transition-colors">{value}</div>
-    <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{label}</div>
-  </div>
-);
+        // Fixed Lucide Icon Component for React Single File
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
+            useEffect(() => {
+                if (iconRef.current) {
+                    // Clear previous content
+                    iconRef.current.innerHTML = '';
+                    // Create the icon element
+                    const iconElement = document.createElement('i');
+                    iconElement.setAttribute('data-lucide', name);
+                    if (className) iconElement.setAttribute('class', className);
+                    iconElement.style.width = `${size}px`;
+                    iconElement.style.height = `${size}px`;
+                    iconRef.current.appendChild(iconElement);
+                    // Initialize lucide for this element
+                    lucide.createIcons({
+                        attrs: {
+                            'stroke-width': 2,
+                            'width': size,
+                            'height': size
+                        }
+                    });
+                }
+            }, [name, size, className]);
 
-export default App;
+            return <span ref={iconRef} className={`inline-flex items-center justify-center ${className}`}></span>;
+        };
+
+        const shuffle = (array) => {
+            const newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+        };
+
+        const rawEvents = [
+            { id: 1, category: 'Digital', title: 'Phishing Intelligence', description: 'အဖွဲ့အစည်း၏ Email အတွင်းသို့ ဝန်ထမ်းရေးရာ အကြောင်းအရာများဖြင့် လှည့်ဖြားထားသော Email များ ရောက်ရှိနေပါသည်။', correctAction: 'IT Team ထံ ပေးပို့၍ Email တစ်ခုလုံးကို Quarantine လုပ်ခိုင်းမည်။', options: ['အန္တရာယ်ရှိသော ဝန်ထမ်းများကို အလုပ်ထုတ်မည်။', 'IT Team ထံ ပေးပို့၍ Email တစ်ခုလုံးကို Quarantine လုပ်ခိုင်းမည်။', 'Email ထဲရှိ Link ကို နှိပ်၍ အတည်ပြုချက် ရယူမည်။'], lesson: 'Phishing သည် အဖွဲ့အစည်းလိုက် တုံ့ပြန်ရန်လိုအပ်သော ခြိမ်းခြောက်မှုဖြစ်သည်။' },
+            { id: 2, category: 'Physical', title: 'Surveillance Detection', description: 'ရုံးခန်းအနီးတွင် မသင်္ကာဖွယ် လူတစ်စုက ဓာတ်ပုံရိုက်ခြင်းနှင့် စောင့်ကြည့်ခြင်းများ ပြုလုပ်နေသည်။', correctAction: 'ဝန်ထမ်းများကို သတိပေးချက်ထုတ်ကာ ခေတ္တအိမ်မှ အလုပ်လုပ်ခိုင်းမည်။', options: ['ချက်ချင်းသွားရောက်၍ ၎င်းတို့အား ရုံးရှေ့မှ မောင်းထုတ်မည်။', 'ဝန်ထမ်းများကို သတိပေးချက်ထုတ်ကာ ခေတ္တအိမ်မှ အလုပ်လုပ်ခိုင်းမည်။', 'လုံခြုံရေးကို အသိမပေးဘဲ ပုံမှန်အတိုင်း ဆက်လက်နေထိုင်မည်။'], lesson: 'စောင့်ကြည့်ခံရခြင်းသည် တိုက်ခိုက်မှုတစ်ခု၏ ရှေးပြေးလက္ခဏာ ဖြစ်နိုင်သည်။' },
+            { id: 3, category: 'Operational', title: 'Information Sanitization', description: 'အရေးကြီးသော ပရောဂျက်တစ်ခု ပြီးဆုံးသည့်အခါ ရရှိလာသည့် စာရွက်စာတမ်း အကြမ်းများကို မည်သို့လုပ်မည်နည်း။', correctAction: 'Shredder စက်ဖြင့် အမှုန်ကြိတ်ဖျက်ဆီးပြီးမှသာ စွန့်ပစ်မည်။', options: ['စာရွက်များကို အပိုင်းပိုင်းစုတ်ဖြဲ၍ အမှိုက်ပုံးထဲ ထည့်မည်။', 'Shredder စက်ဖြင့် အမှုန်ကြိတ်ဖျက်ဆီးပြီးမှသာ စွန့်ပစ်မည်။', 'နောက်တစ်ကြိမ် ပြန်လည်အသုံးပြုရန် စာရွက်များကို သိမ်းထားမည်။'], lesson: 'စုတ်ဖြဲရုံဖြင့် အချက်အလက်ကို အပြည့်အဝ မဖျက်ဆီးနိုင်ပါ။' },
+            { id: 4, category: 'Digital', title: 'Data Resilience', description: 'အဖွဲ့အစည်း၏ Database ကို Ransomware ဘေးမှ ကာကွယ်ရန် အထိရောက်ဆုံး နည်းလမ်းမှာ အဘယ်နည်း။', correctAction: 'Off-site သိမ်းဆည်းထားသော Encrypted Backup စနစ်ကို သုံးမည်။', options: ['ရုံးတွင်းရှိ External Hard drive ထဲတွင်သာ ကူးယူသိမ်းဆည်းမည်။', 'Off-site သိမ်းဆည်းထားသော Encrypted Backup စနစ်ကို သုံးမည်။', 'Cloud Storage တစ်ခုတည်းတွင်သာ အချက်အလက် တင်ထားမည်။'], lesson: 'Offline/Off-site backup သည် Ransomware အတွက် အထိရောက်ဆုံးဖြစ်သည်။' },
+            { id: 5, category: 'Digital', title: 'Removable Media Risk', description: 'ရုံးခန်းအတွင်းတွင် ပိုင်ရှင်မဲ့ USB တစ်ခုကို တွေ့ရှိရသည်။ သင် မည်သို့ ဆောင်ရွက်မည်နည်း။', correctAction: 'သီးခြားခွဲထုတ်ထားသော စက်ဖြင့်သာ စစ်ဆေးမည် သို့မဟုတ် ဖျက်ဆီးမည်။', options: ['ပိုင်ရှင်ရှာဖွေရန် မည်သည့်စက်တွင်မဆို ထည့်သွင်းစစ်ဆေးမည်။', 'သီးခြားခွဲထုတ်ထားသော စက်ဖြင့်သာ စစ်ဆေးမည် သို့မဟုတ် ဖျက်ဆီးမည်။', 'USB ကို ပိုင်ရှင်ပြန်တွေ့ရန် ဝန်ထမ်းအားလုံး၏ စက်တွင် စမ်းခိုင်းမည်။'], lesson: 'USB များသည် Malware သွင်းရန် အသုံးအများဆုံး နည်းလမ်းဖြစ်သည်။' },
+            { id: 6, category: 'Physical', title: 'Tailgating Breach', description: 'ဝန်ထမ်းတစ်ဦး နောက်မှ ကပ်လျက် သူစိမ်းတစ်ဦး ရုံးအတွင်းသို့ ဝင်လာသည်ကို တွေ့ရသည်။', correctAction: 'ယဉ်ကျေးစွာ တားဆီးပြီး ဧည့်ခန်းတွင် စောင့်ခိုင်းကာ တာဝန်ရှိသူကို ခေါ်မည်။', options: ['ဝန်ထမ်းနှင့် ရင်းနှီးသူဖြစ်မည်ဟု ယူဆကာ လွှတ်ပေးလိုက်မည်။', 'ယဉ်ကျေးစွာ တားဆီးပြီး ဧည့်ခန်းတွင် စောင့်ခိုင်းကာ တာဝန်ရှိသူကို ခေါ်မည်။', 'လုံခြုံရေး အစောင့်များကို အော်ဟစ်ကာ ချက်ချင်းဖမ်းခိုင်းမည်။'], lesson: 'Social engineering သည် ယဉ်ကျေးမှုကို အသုံးချ၍ စည်းကမ်းဖောက်ဖျက်တတ်သည်။' },
+            { id: 7, category: 'Digital', title: 'Secure Communication', description: 'အရေးကြီးသော မြေပြင်သတင်းများကို အဖွဲ့သားများထံ ပေးပို့ရန် မည်သည့် App ကို သုံးသင့်သနည်း။', correctAction: 'End-to-end encryption နှင့် Metadata လုံခြုံသော App ကို သုံးမည်။', options: ['ပုံမှန် SMS သို့မဟုတ် ဖုန်းခေါ်ဆိုမှုဖြင့်သာ အကြောင်းကြားမည်။', 'End-to-end encryption နှင့် Metadata လုံခြုံသော App ကို သုံးမည်။', 'အသုံးများသော Messenger သို့မဟုတ် Viber App ကိုသာ သုံးမည်။'], lesson: 'Metadata လုံခြုံမှုသည် အဖွဲ့အစည်း၏ လှုပ်ရှားမှုများကို ဖုံးကွယ်ရန် အရေးကြီးသည်။' },
+            { id: 8, category: 'Digital', title: 'Social Media Hygiene', description: 'ဝန်ထမ်းတစ်ဦးက ကွင်းဆင်းစဉ် ရိုက်ထားသော ဓာတ်ပုံကို Social Media တွင် တင်လိုက်သည်။', correctAction: 'ဓာတ်ပုံကို ဖြုတ်ခိုင်းပြီး Metadata နှင့် Location ကို ဖျက်ခိုင်းမည်။', options: ['အဖွဲ့အစည်း ကြော်ငြာဖြစ်သဖြင့် ဓာတ်ပုံကို Like သွားပေးမည်။', 'ဓာတ်ပုံကို ဖြုတ်ခိုင်းပြီး Metadata နှင့် Location ကို ဖျက်ခိုင်းမည်။', 'ဘာမှမလုပ်ဘဲ ပုံမှန်အတိုင်းသာ ဆက်လက်ထားရှိမည်။'], lesson: 'ဓာတ်ပုံနောက်ခံကို ကြည့်၍ တည်နေရာကို ရှာဖွေနိုင်သည့် အန္တရာယ်ရှိသည်။' },
+            { id: 9, category: 'Contextual', title: 'Checkpoint Preparedness', description: 'စစ်ဆေးရေးဂိတ်တစ်ခုတွင် သင့်ဖုန်းအတွင်းရှိ Contact များကို စစ်ဆေးရန် တောင်းဆိုလာသည်။', correctAction: 'Data များ ဖျောက်ထားသော Sanitized ဖုန်းကိုသာ ထုတ်ပြမည်။', options: ['ဖုန်းမပေးနိုင်ကြောင်း အော်ဟစ်၍ အပြင်းအထန် ငြင်းဆန်မည်။', 'Data များ ဖျောက်ထားသော Sanitized ဖုန်းကိုသာ ထုတ်ပြမည်။', 'Contact အားလုံးကို ထိုနေရာတွင်ပင် အလျင်အမြန် ဖျက်ပစ်မည်။'], lesson: 'မြေပြင်တွင် စစ်ဆေးခံရခြင်းအတွက် Sanitized ဖုန်းမှာ အလုံခြုံဆုံးဖြစ်သည်။' },
+            { id: 10, category: 'Operational', title: 'Credential Protection', description: 'ဝန်ထမ်းတစ်ဦးက Password များကို စာရွက်ပေါ်တွင် ရေးထားသည်ကို တွေ့ရသည်။', correctAction: 'Master Password ပါသော Password Manager သုံးရန် ညွှန်ကြားမည်။', options: ['စာရွက်ကို မပျောက်အောင် သိမ်းထားရန်သာ သတိပေးမည်။', 'Master Password ပါသော Password Manager သုံးရန် ညွှန်ကြားမည်။', 'ဘာမှမပြောဘဲ ဝန်ထမ်း၏ လွတ်လပ်ခွင့်အဖြစ် ထားရှိမည်။'], lesson: 'Password Manager သည် ရှုပ်ထွေးသော Password များကို လုံခြုံစေသည်။' },
+            { id: 11, category: 'Physical', title: 'Incident Response: Break-in', description: 'ရုံးခန်းအတွင်း သူခိုးဝင်ထားပြီး Laptop တစ်လုံး ပျောက်ဆုံးနေသည်ကို တွေ့ရသည်။', correctAction: 'Remote Wipe စနစ်ဖြင့် Laptop ထဲမှ Data ကို ချက်ချင်းဖျက်မည်။', options: ['ရဲကို ချက်ချင်းတိုင်မည် (Data မဖျက်ဘဲ အထောက်အထားပြရန်)။', 'Remote Wipe စနစ်ဖြင့် Laptop ထဲမှ Data ကို ချက်ချင်းဖျက်မည်။', 'ပစ္စည်းပျောက်ရှာရန် ရုံးခန်းတစ်ခုလုံးကို မွှေနှောက်စစ်ဆေးမည်။'], lesson: 'စက်ပစ္စည်းထက် Data လုံခြုံရေးက ပိုမိုဦးစားပေး ဖြစ်ရမည်။' },
+            { id: 12, category: 'Digital', title: 'Zero-day Patching', description: 'Software တွင် Critical Vulnerability ရှိကြောင်း သတင်းတက်လာသည်။', correctAction: 'အလုပ်များကို ရပ်နားပြီး လုံခြုံရေး Update ကို ချက်ချင်း တင်မည်။', options: ['အလုပ်အားသည့် အချိန်မှသာ Update ကို တင်ရန် စီစဉ်မည်။', 'အလုပ်များကို ရပ်နားပြီး လုံခြုံရေး Update ကို ချက်ချင်း တင်မည်။', 'Software ကို ဆက်လက်အသုံးမပြုတော့ဘဲ ရပ်ဆိုင်းထားမည်။'], lesson: 'Update တင်ခြင်းသည် လုံခြုံရေး အပေါက်များကို ပိတ်ခြင်းဖြစ်သည်။' },
+            { id: 13, category: 'Operational', title: 'Internal Threat', description: 'ဝန်ထမ်းဟောင်းတစ်ဦးက ရုံး၏ Drive ကို ဆက်လက် အသုံးပြုနေသည်ကို တွေ့ရသည်။', correctAction: 'Access များကို ပိတ်ပြီး ကြည့်ရှုသွားသော Data များကို စစ်မည်။', options: ['ဝန်ထမ်းဟောင်းဖြစ်သဖြင့် အချိန်အနည်းငယ် ထပ်ပေးထားမည်။', 'Access များကို ပိတ်ပြီး ကြည့်ရှုသွားသော Data များကို စစ်မည်။', 'စကားဝှက်အသစ် ပြောင်းလဲပေးရန်သာ တောင်းဆိုမည်။'], lesson: 'Off-boarding လုပ်ငန်းစဉ်တွင် Access ပိတ်ခြင်းမှာ အဓိကဖြစ်သည်။' },
+            { id: 14, category: 'Contextual', title: 'Physical Surveillance', description: 'ဟိုတယ်တွင် တည်းခိုစဉ် သင့်အခန်းတံခါးမှာ သင်မရှိခိုက် ဖွင့်ထားသည်ကို တွေ့ရသည်။', correctAction: 'ဟိုတယ်လုံခြုံရေးကို ခေါ်ပြီး ပစ္စည်းများကို အသစ်လဲလှယ်မည်။', options: ['အတွင်းဝင်၍ ပစ္စည်းများ ပျောက်မပျောက် တစ်ခုချင်း စစ်မည်။', 'ဟိုတယ်လုံခြုံရေးကို ခေါ်ပြီး ပစ္စည်းများကို အသစ်လဲလှယ်မည်။', 'တံခါးပြန်ပိတ်ပြီး မည်သူမျှ မသိအောင် အိပ်စက်လိုက်မည်။'], lesson: 'စောင့်ကြည့်ရေးကိရိယာများ (Bugs) ထည့်သွင်းထားနိုင်သည်ကို သတိပြုရမည်။' },
+            { id: 15, category: 'Operational', title: 'Mission Complete', description: 'ခရီးစဉ်တစ်ခုမသွားမီ လုံခြုံရေးအရ မည်သည်ကို ကြိုတင်ပြင်ဆင်သင့်သနည်း။', correctAction: 'Risk Assessment ပြုလုပ်ပြီး Exit Route များ သတ်မှတ်မည်။', options: ['ခရီးစဉ်အတွက် အသုံးစရိတ်များကိုသာ အလေးထား ပြင်ဆင်မည်။', 'Risk Assessment ပြုလုပ်ပြီး Exit Route များ သတ်မှတ်မည်။', 'ဘာမှမပြင်ဆင်ဘဲ မြေပြင်အခြေအနေကြည့်၍သာ ဆောင်ရွက်မည်။'], lesson: 'ကြိုတင်ပြင်ဆင်ခြင်းသည် ဘေးဒုက္ခကို ထက်ဝက်လျှော့ချနိုင်သည်။' }
+        ];
+
+        const App = () => {
+            const [gameState, setGameState] = useState('start');
+            const [day, setDay] = useState(1);
+            const [safety, setSafety] = useState(100);
+            const [resources, setResources] = useState(100);
+            const [lives, setLives] = useState(5);
+            const [currentEventIndex, setCurrentEventIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [isConfirmed, setIsConfirmed] = useState(false);
+            const [feedback, setFeedback] = useState(null);
+            const [history, setHistory] = useState([]);
+            const [isMuted, setIsMuted] = useState(true);
+            const [timeLeft, setTimeLeft] = useState(15);
+            const [shuffledOptions, setShuffledOptions] = useState([]);
+            const [userMetadata, setUserMetadata] = useState({ ip: 'Fetching...', device: 'Detecting...' });
+            
+            const audioCtxRef = useRef(null);
+            const pulseIntervalRef = useRef(null);
+            const droneOscRef = useRef(null);
+
+            useEffect(() => {
+                const fetchMetadata = async () => {
+                    try {
+                        const response = await fetch('https://api.ipify.org?format=json');
+                        const data = await response.json();
+                        const userAgent = navigator.userAgent;
+                        let deviceType = "Desktop";
+                        if (/Mobi|Android/i.test(userAgent)) deviceType = "Mobile Device";
+                        setUserMetadata({ ip: data.ip, device: deviceType });
+                    } catch (err) {
+                        setUserMetadata({ ip: 'Unavailable', device: 'Unknown' });
+                    }
+                };
+                fetchMetadata();
+            }, []);
+
+            const initAudio = useCallback(() => {
+                if (!audioCtxRef.current) {
+                    audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtxRef.current.state === 'suspended') {
+                    audioCtxRef.current.resume();
+                }
+            }, []);
+
+            const playBGM = useCallback(() => {
+                if (isMuted || !audioCtxRef.current) return;
+                
+                const ctx = audioCtxRef.current;
+                const drone = ctx.createOscillator();
+                const droneGain = ctx.createGain();
+                drone.type = 'sine';
+                drone.frequency.setValueAtTime(55, ctx.currentTime);
+                droneGain.gain.setValueAtTime(0.04, ctx.currentTime);
+                drone.connect(droneGain);
+                droneGain.connect(ctx.destination);
+                drone.start();
+                droneOscRef.current = drone;
+
+                const createPulse = () => {
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const filter = ctx.createBiquadFilter();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(110, now);
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                };
+                pulseIntervalRef.current = setInterval(createPulse, 2000);
+            }, [isMuted]);
+
+            const stopBGM = useCallback(() => {
+                if (droneOscRef.current) { droneOscRef.current.stop(); droneOscRef.current = null; }
+                if (pulseIntervalRef.current) { clearInterval(pulseIntervalRef.current); pulseIntervalRef.current = null; }
+            }, []);
+
+            useEffect(() => {
+                if (!isMuted) { initAudio(); playBGM(); } else { stopBGM(); }
+                return () => stopBGM();
+            }, [isMuted, playBGM, stopBGM, initAudio]);
+
+            useEffect(() => {
+                if (gameState === 'playing' && !isConfirmed) {
+                    setShuffledOptions(shuffle(rawEvents[currentEventIndex].options));
+                    setTimeLeft(15);
+                }
+            }, [currentEventIndex, gameState, isConfirmed]);
+
+            useEffect(() => {
+                let timer;
+                if (gameState === 'playing' && !isConfirmed && timeLeft > 0) {
+                    timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                } else if (timeLeft === 0 && !isConfirmed) {
+                    handleTimeOut();
+                }
+                return () => clearInterval(timer);
+            }, [timeLeft, gameState, isConfirmed]);
+
+            const handleTimeOut = () => {
+                const currentEvent = rawEvents[currentEventIndex];
+                setHistory(prev => [...prev, { title: currentEvent.title, choice: 'Time Out', correct: false, lesson: currentEvent.lesson }]);
+                setLives(l => l - 1);
+                setSafety(s => Math.max(0, s - 20));
+                setFeedback({ correct: false, text: `အချိန်ကုန်သွားပါသည်။ နောက်မေးခွန်းသို့ ဆက်သွားပါမည်။`, points: "-1 Life, -20 Safety" });
+                setIsConfirmed(true);
+                setTimeout(() => autoNext(false, true), 2000);
+            };
+
+            const autoNext = (isCorrect, isTimeout) => {
+                const penalty = isTimeout ? 20 : 15;
+                const nextLives = isCorrect ? lives : lives - 1;
+                const nextSafety = isCorrect ? safety : safety - penalty;
+                if (nextLives <= 0 || nextSafety <= 0) {
+                    setGameState('gameOver');
+                } else if (currentEventIndex < rawEvents.length - 1) {
+                    setCurrentEventIndex(i => i + 1);
+                    setDay(d => d + 1);
+                    setFeedback(null);
+                    setSelectedOption(null);
+                    setIsConfirmed(false);
+                } else {
+                    setGameState('result');
+                }
+            };
+
+            const startGame = () => {
+                initAudio();
+                setGameState('playing');
+                setDay(1); setSafety(100); setResources(100); setLives(5); setScore(0);
+                setCurrentEventIndex(0); setSelectedOption(null); setIsConfirmed(false);
+                setFeedback(null); setHistory([]); setTimeLeft(15);
+                if (isMuted) setIsMuted(false);
+            };
+
+            const handleConfirm = () => {
+                if (!selectedOption || isConfirmed) return;
+                const currentEvent = rawEvents[currentEventIndex];
+                const isCorrect = selectedOption === currentEvent.correctAction;
+                setHistory([...history, { title: currentEvent.title, choice: selectedOption, correct: isCorrect, lesson: currentEvent.lesson }]);
+                if (isCorrect) {
+                    setScore(s => s + 20); setResources(r => Math.max(0, r - 5));
+                    setFeedback({ correct: true, text: `မှန်ကန်ပါသည်။ ${currentEvent.lesson}`, points: "+20 Score" });
+                } else {
+                    setLives(l => l - 1); setSafety(s => Math.max(0, s - 15));
+                    setFeedback({ correct: false, text: `သတိထားပါ။ ${currentEvent.lesson}`, points: "-1 Life, -15 Safety" });
+                }
+                setIsConfirmed(true);
+            };
+
+            const handleNext = () => autoNext(feedback.correct, false);
+
+            const StatItem = ({ label, value, color, progress }) => (
+                <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{label}</span>
+                        <span className={`text-xs font-black ${color}`}>{value}</span>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                        <div className={`h-full ${color.replace('text', 'bg')} transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(255,255,255,0.1)]`} style={{ width: `${progress}%` }}></div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-[#020406] text-slate-100 font-sans p-4 md:p-8 flex flex-col items-center select-none">
+                    {/* Header HUD */}
+                    <div className="w-full max-w-5xl flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-white/10 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600/20 p-2.5 rounded border border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                                <Icon name="terminal" size={24} className="text-blue-400" />
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-lg tracking-[0.2em] text-white leading-none uppercase">SENTINEL: TACTICAL DEFENSE</h1>
+                                <p className="text-[10px] text-blue-400 font-black tracking-[0.4em] uppercase mt-1">Authorized Response Unit</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {gameState === 'playing' && !isConfirmed && (
+                                <div className={`flex items-center gap-2 px-4 py-1.5 rounded bg-black/40 border-2 transition-all duration-300 ${timeLeft <= 5 ? 'border-red-500 text-red-500 timer-warning' : 'border-blue-500/30 text-blue-100'}`}>
+                                    <Icon name="clock" size={18} />
+                                    <span className="text-sm font-black tracking-tighter w-6">{timeLeft}s</span>
+                                </div>
+                            )}
+                            <button onClick={() => setIsMuted(!isMuted)} className="p-2.5 rounded bg-white/5 border border-white/20 hover:bg-white/10 transition-all active:scale-95">
+                                <Icon name={isMuted ? "volume-x" : "volume-2"} size={20} className={isMuted ? "text-slate-500" : "text-blue-400"} />
+                            </button>
+                            <div className="bg-blue-600/10 px-4 py-2 rounded border border-blue-500/30 text-[11px] font-black tracking-widest text-blue-100 uppercase">
+                                Phase {day} / {rawEvents.length}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Console Unit */}
+                    <div className="w-full max-w-5xl bg-[#0a0f18] rounded-md border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.9)] relative min-h-[580px] flex flex-col md:flex-row overflow-hidden border-t-blue-500/30 border-t-2">
+                        {gameState === 'start' && (
+                            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent">
+                                <div className="w-24 h-24 bg-blue-600/10 rounded border-2 border-blue-500/40 flex items-center justify-center mb-10 rotate-45 shadow-[0_0_40px_rgba(59,130,246,0.3)]">
+                                    <Icon name="shield" size={48} className="text-blue-400 -rotate-45" />
+                                </div>
+                                <h2 className="text-4xl font-bold text-white mb-6 tracking-tight">Security Protocol Simulation</h2>
+                                <p className="text-slate-400 mb-10 max-w-md text-sm leading-relaxed uppercase tracking-widest font-medium">
+                                    သင့်တွင် Game ယှဉ်ပြိုင်ရန် အသက်(၅)သက်ရှိသည်။ <br/>
+                                    အဖြေတစ်ခုစီအတွက် ၁၅ စက္ကန့်သာ ရရှိပါမည်။
+                                </p>
+                                <button onClick={startGame} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-14 rounded-sm transition-all text-xs uppercase tracking-[0.4em] border border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)] active:scale-95 hover:scale-105">
+                                    Initialize System
+                                </button>
+                            </div>
+                        )}
+
+                        {gameState === 'playing' && (
+                            <>
+                                <div className="w-full md:w-64 bg-black/70 border-b md:border-b-0 md:border-r border-white/10 p-6 flex flex-col pt-10">
+                                    <StatItem label="Safety Index" value={`${safety}%`} color="text-rose-500" progress={safety} />
+                                    <StatItem label="Resources" value={`${resources}%`} color="text-blue-400" progress={resources} />
+                                    <StatItem label="Survival Units" value={lives} color="text-emerald-400" progress={(lives/5)*100} />
+                                    <StatItem label="Intel Score" value={score} color="text-amber-400" progress={(score/300)*100} />
+                                </div>
+                                <div className="flex-1 p-6 md:p-12 flex flex-col bg-gradient-to-br from-transparent to-blue-950/10">
+                                    <div className="mb-8">
+                                        <span className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] border-l-4 border-blue-500 pl-3">Threat Class: {rawEvents[currentEventIndex].category}</span>
+                                        <h3 className="text-2xl font-bold text-white mt-4 tracking-tight leading-tight">{rawEvents[currentEventIndex].title}</h3>
+                                    </div>
+                                    <div className="bg-white/5 p-8 rounded border border-white/5 mb-10 text-slate-200 text-sm italic font-semibold leading-relaxed shadow-inner">"{rawEvents[currentEventIndex].description}"</div>
+                                    <div className="space-y-4">
+                                        {shuffledOptions.map((option, idx) => (
+                                            <button key={idx} disabled={isConfirmed} onClick={() => setSelectedOption(option)}
+                                                className={`w-full text-left p-5 rounded-sm text-sm border-2 flex items-center transition-all ${selectedOption === option ? 'border-blue-500 bg-blue-500/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/5 bg-white/5 text-slate-300 hover:bg-white/10'} ${isConfirmed && option !== selectedOption ? 'opacity-40' : ''}`}>
+                                                <span className={`mr-4 font-black text-xs ${selectedOption === option ? 'text-blue-400' : 'text-slate-500'}`}>0{idx + 1} //</span>
+                                                <span className="font-bold tracking-wide">{option}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="mt-auto pt-12">
+                                        {selectedOption && !isConfirmed && <button onClick={handleConfirm} className="w-full bg-blue-600 text-white font-black py-5 rounded-sm text-xs uppercase tracking-[0.4em] shadow-xl active:scale-95 border border-blue-400 hover:bg-blue-500">Execute Response</button>}
+                                        {isConfirmed && feedback && (
+                                            <div className="animate-in slide-in-from-bottom-4 duration-500">
+                                                <div className={`p-6 rounded-sm border-2 mb-6 ${feedback.correct ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-rose-500/10 border-rose-500/40 text-rose-300'}`}>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <Icon name={feedback.correct ? "check-circle-2" : "x-circle"} size={24} />
+                                                        <p className="font-black uppercase tracking-widest text-xs">{feedback.correct ? 'Result: Optimal Strategy' : 'Result: System Compromised'}</p>
+                                                    </div>
+                                                    <p className="text-sm font-bold opacity-90 leading-relaxed">{feedback.text}</p>
+                                                </div>
+                                                {timeLeft > 0 && <button onClick={handleNext} className="w-full bg-white text-black font-black py-5 rounded-sm text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-slate-200 transition-colors">Continue Mission <Icon name="chevron-right" size={14} className="ml-1 inline" /></button>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {(gameState === 'result' || gameState === 'gameOver') && (
+                            <div className="flex-1 p-8 md:p-16 overflow-y-auto max-h-[650px] bg-black/60 custom-scrollbar flex flex-col">
+                                <div className="text-center mb-12">
+                                    <h2 className={`text-5xl font-black mb-3 tracking-tighter ${gameState === 'result' ? 'text-emerald-400' : 'text-rose-500'}`}>{gameState === 'result' ? 'OPERATIONAL SUCCESS' : 'MISSION TERMINATED'}</h2>
+                                    <p className="text-[10px] text-slate-400 tracking-[0.5em] uppercase font-bold">Post-Action Intelligence Report</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+                                    <div className="bg-[#0f172a] p-8 rounded-sm border border-white/5 text-center shadow-lg"><div className="text-4xl font-black text-white mb-2">{score}</div><div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">Final Intel Score</div></div>
+                                    <div className="bg-[#0f172a] p-8 rounded-sm border border-white/5 text-center shadow-lg"><div className="text-4xl font-black text-white mb-2">{Math.round((history.filter(h=>h.correct).length/rawEvents.length)*100)}%</div><div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">Efficiency Rating</div></div>
+                                </div>
+                                <button onClick={startGame} className="w-full max-w-sm mx-auto block bg-blue-600 text-white font-black py-5 rounded-sm text-xs uppercase tracking-[0.5em] shadow-xl active:scale-95 hover:bg-blue-500 border border-blue-400">Re-initialize Core</button>
+                                <div className="space-y-6 flex-1 mt-12">
+                                    <h4 className="text-[12px] font-black text-slate-400 tracking-[0.4em] uppercase border-b border-white/10 pb-4 mb-8 text-center">Debriefing Action Logs</h4>
+                                    {history.map((h, i) => (
+                                        <div key={i} className="bg-white/5 p-6 rounded-sm border border-white/10 relative overflow-hidden group hover:bg-white/10 transition-colors border-l-4" style={{borderLeftColor: h.correct ? '#10b981' : '#f43f5e'}}>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="font-black text-sm text-white uppercase tracking-tight">{h.title}</span>
+                                                <span className={`text-[10px] font-black px-3 py-1 rounded border uppercase ${h.correct ? 'border-emerald-500/50 text-emerald-500' : 'border-rose-500/50 text-rose-500'}`}>{h.correct ? 'Verified' : 'Breach'}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mb-4 font-bold italic leading-relaxed">Decision Trace: {h.choice}</p>
+                                            <div className="text-blue-300 bg-blue-500/10 p-4 border border-blue-500/20 text-[13px] font-medium leading-relaxed rounded-sm"> <span className="text-blue-500 font-black mr-2">PROTOCOL:</span> {h.lesson} </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-20 pt-10 border-t border-white/10 text-center space-y-6">
+                                    <div className="flex flex-col sm:flex-row justify-center items-center gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                        <div className="flex items-center gap-3"><Icon name="globe" size={16} className="text-blue-500" /><span>IP ADDRESS: <span className="text-slate-200">{userMetadata.ip}</span></span></div>
+                                        <div className="flex items-center gap-3"><Icon name="smartphone" size={16} className="text-blue-500" /><span>DEVICE UNIT: <span className="text-slate-200">{userMetadata.device}</span></span></div>
+                                    </div>
+                                    <p className="text-[9px] opacity-40 uppercase tracking-[0.3em] text-slate-500">Sentinel System Audit Log • {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString()}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <p className="mt-12 text-[10px] text-slate-600 font-black uppercase tracking-[1em] opacity-30">Sentinel-X-Prime • Tactical Defense Layer</p>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
